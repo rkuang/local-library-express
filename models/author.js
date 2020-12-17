@@ -22,13 +22,13 @@ AuthorSchema
 AuthorSchema
 .virtual('birth_date_formatted')
 .get(function () {
-  return this.birth_date ? DateTime.fromJSDate(this.birth_date).toLocaleString(DateTime.DATE_MED) : '';
+  return this.birth_date ? DateTime.fromJSDate(this.birth_date).setZone('GMT').toLocaleString(DateTime.DATE_MED) : '';
 });
 
 AuthorSchema
 .virtual('death_date_formatted')
 .get(function () {
-  return this.death_date ? DateTime.fromJSDate(this.death_date).toLocaleString(DateTime.DATE_MED) : '';
+  return this.death_date ? DateTime.fromJSDate(this.death_date).setZone('GMT').toLocaleString(DateTime.DATE_MED) : '';
 });
 
 AuthorSchema
