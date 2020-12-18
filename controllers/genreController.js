@@ -55,7 +55,7 @@ module.exports = {
 
   // Handle Genre create on POST.
   genre_create_post: [
-    body('name', 'Genre name required').trim().isLength({ min: 1 }).escape(),
+    body('name', 'Genre name required.').trim().isLength({ min: 1 }).escape(),
 
     (req, res, next) => {
       const errors = validationResult(req);
@@ -135,11 +135,40 @@ module.exports = {
 
   // Display Genre update form on GET.
   genre_update_get: function (req, res, next) {
-    res.send('NOT IMPLEMENTED: Genre update GET');
+    Genre.findById(req.params.id).exec(((err, result) => {
+      if (err) next(err);
+      if (result == null) {
+        let error = new Error('Genre not found.');
+        error.status = 404;
+        next(err);
+      }
+      res.render('genre_form', {
+        title: 'Update Genre',
+        genre: result
+      })
+    }))
   },
 
   // Handle Genre update on POST.
-  genre_update_post: function (req, res, next) {
-    res.send('NOT IMPLEMENTED: Genre update POST');
-  },
+  genre_update_post: [
+    body('name', 'Genre name required.').trim().isLength({ min: 1 }).escape(),
+    (req, res, next) => {
+      const errors = validationResult(req);
+      const genre = new Genre({
+        name: req.body.name,
+        _id: req.params.id
+      });
+      if (!errors.isEmpty()) {
+        req.render('genre_form', {
+          title: 'Update Genre',
+          genre: genre
+        });
+      } else {
+        Genre.findByIdAndUpdate(genre._id, genre, (err) => {
+          if (err) next(err);
+          res.redirect(genre.url);
+        })
+      }
+    }
+  ],
 }
