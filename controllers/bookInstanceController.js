@@ -93,12 +93,38 @@ module.exports = {
 
   // Display BookInstance delete form on GET.
   book_instance_delete_get: function (req, res, next) {
-    res.send('NOT IMPLEMENTED: BookInstance delete GET');
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      var err = new Error('Bad Request');
+      err.status = 400;
+      return next(err);
+    }
+    BookInstance.findById(req.params.id)
+      .populate('book')
+      .exec((err, result) => {
+        if (err) return next(err);
+        if (result == null) {
+          var err = new Error('Book Instance not found');
+          err.status = 404;
+          return next(err);
+        }
+        res.render('book_instance_delete', {
+          title: 'Copy: ' + result.book.title,
+          bookinstance: result
+        });
+      });
   },
 
   // Handle BookInstance delete on POST.
   book_instance_delete_post: function (req, res, next) {
-    res.send('NOT IMPLEMENTED: BookInstance delete POST');
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      var err = new Error('Bad Request');
+      err.status = 400;
+      return next(err);
+    }
+    BookInstance.findByIdAndDelete(req.params.id, (err, result) => {
+      if (err) return next(err);
+      res.redirect('/catalog/book/'+result.book._id);
+    });
   },
 
   // Display BookInstance update form on GET.
