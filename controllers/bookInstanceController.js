@@ -129,11 +129,59 @@ module.exports = {
 
   // Display BookInstance update form on GET.
   book_instance_update_get: function (req, res, next) {
-    res.send('NOT IMPLEMENTED: BookInstance update GET');
+    async.parallel({
+      books: (cb) => {
+        book.find({}, 'title').sort([['title', 'asc']]).exec(cb)
+      },
+      book_instance: (cb) => {
+        BookInstance.findById(req.params.id).exec(cb);
+      }
+    }, (err, results) => {
+      if (err) next(err);
+      if (results.book_instance == null) {
+        let error = new Error('Book Instance not found');
+        error.status = 404;
+        next(error);
+      }
+      res.render('book_instance_form', {
+        title: 'Update Book Instance',
+        book_list: results.books,
+        bookinstance: results.book_instance,
+      })
+    });
   },
 
   // Handle bookinstance update on POST.
-  book_instance_update_post: function (req, res, next) {
-    res.send('NOT IMPLEMENTED: BookInstance update POST');
-  },
+  book_instance_update_post: [
+    body('book', 'Book cannot be empty.').trim().isLength({ min: 1 }).escape(),
+    body('imprint', 'Imprint cannot be empty').trim().isLength({ min: 1 }).escape(),
+    body('status').escape(),
+    body('due_back', 'Invalid date.').optional({ checkFalsy: true}).isISO8601().toDate(),
+    (req, res, next) => {
+      const errors = validationResult(req);
+      const book_instance = new BookInstance({
+        _id: req.params.id,
+        book: req.body.book,
+        imprint: req.body.imprint,
+        status: req.body.status,
+        due_back: req.body.due_back
+      });
+      if (!errors.isEmpty()) {
+        book.find({}, 'title').sort([['title', 'asc']]).exec((err, books) => {
+          if (err) next(err);
+          res.render('book_instance_form', {
+            title: 'Update Book Instance',
+            book_list: books,
+            bookinstance: book_instance,
+            errors: errors.array()
+          });
+        })
+      } else {
+        BookInstance.findByIdAndUpdate(book_instance._id, book_instance, (err) => {
+          if (err) next(err);
+          res.redirect(book_instance.url);
+        })
+      }
+    }
+  ],
 }
