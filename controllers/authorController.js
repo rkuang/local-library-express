@@ -142,11 +142,55 @@ module.exports = {
 
   // Display Author update form on GET
   author_update_get: function(req, res, next) {
-    res.send('NOT IMPLEMENTED: Author update GET');
+    async.parallel({
+      author: (cb) => {
+        Author.findById(req.params.id).exec(cb);
+      }
+    }, (err, results) => {
+      if (err) return next(err);
+      if (results.author == null) {
+        let error = new Error('Author not found');
+        error.status = 404;
+        return next(error);
+      }
+      res.render('author_form', {
+        title: 'Update Author',
+        author: results.author
+      });
+    })
   },
 
   // Display Author update form on POST
-  author_update_post: function(req, res, next) {
-    res.send('NOT IMPLEMENTED: Author update POST');
-  }
+  author_update_post: [
+    body('first_name').trim()
+      .isLength({ min: 1 }).escape().withMessage('First name cannot be empty.')
+      .isAlphanumeric().withMessage('First name contains non-alphanumeric characters.'),
+    body('last_name').trim()
+      .isLength({ min: 1 }).escape().withMessage('Last name cannot be empty.')
+      .isAlphanumeric().withMessage('Last name contains non-alphanumeric characters.'),
+    body('birth_date').optional({ checkFalsy: true }).isISO8601().toDate(),
+    body('death_date').optional({ checkFalsy: true }).isISO8601().toDate(),
+    (req, res, next) => {
+      const errors = validationResult(req);
+      const author = new Author({
+        first_name: req.body.first_name,
+        last_name: req.body.last_name,
+        birth_date: req.body.birth_date,
+        death_date: req.body.death_date,
+        _id: req.params.id
+      });
+      if (!errors.isEmpty()) {
+        res.render('author_form', {
+          title: 'Update Author',
+          author: author,
+          errors: errors.array()
+        });
+      } else {
+        Author.findByIdAndUpdate(author._id, author, (err, result) => {
+          if (err) return next(err);
+          res.redirect(result.url);
+        })
+      }
+    }
+  ]
 };
