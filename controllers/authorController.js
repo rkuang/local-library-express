@@ -1,7 +1,9 @@
-const { nextTick } = require('async');
 var Author = require('../models/author');
 var async = require('async');
 const book = require('../models/book');
+const { body, validationResult } = require('express-validator');
+const author = require('../models/author');
+const mongoose = require('mongoose');
 
 module.exports = {
   // Display list of all Authors
@@ -49,32 +51,64 @@ module.exports = {
   },
   
   // Display Author create form on GET
-  author_create_get: function(req, res) {
-    res.send('NOT IMPLEMENTED: Author create GET');
+  author_create_get: function(req, res, next) {
+    res.render('author_form', {
+      title: 'Create Author'
+    });
   },
 
   // Handle Author create on POST
-  author_create_post: function(req, res) {
-    res.send('NOT IMPLEMENTED: Author create POST');
-  },
+  author_create_post: [
+    body('first_name').trim()
+      .isLength({ min: 1 }).escape().withMessage('First name cannot be empty.')
+      .isAlphanumeric().withMessage('First name contains non-alphanumeric characters.'),
+    body('last_name').trim()
+      .isLength({ min: 1 }).escape().withMessage('Last name cannot be empty.')
+      .isAlphanumeric().withMessage('Last name conatins non-alphanumeric characters.'),
+    body('birth_date').optional({ checkFalsy: true }).isISO8601().toDate(),
+    body('death_date').optional({ checkFalsy: true }).isISO8601().toDate(),
+
+    (req, res, next) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty) {
+        res.render('author_form', {
+          title: 'Create Author',
+          author: req.body,
+          errors: errors.array()
+        });
+      } else {
+        var author = new Author(
+          {
+            first_name: req.body.first_name,
+            last_name: req.body.last_name,
+            birth_date: req.body.birth_date,
+            death_date: req.body.death_date,
+          });
+        author.save((err) => {
+          if (err) return next(err);
+          res.redirect(author.url);
+        })
+      }
+    }
+  ],
 
   // Display Author delete form on GET
-  author_delete_get: function(req, res) {
+  author_delete_get: function(req, res, next) {
     res.send('NOT IMPLEMENTED: Author delete GET');
   },
 
   // Handle Author delete on POST
-  author_delete_post: function(req, res) {
+  author_delete_post: function(req, res, next) {
     res.send('NOT IMPLEMENTED: Author delete POST');
   },
 
   // Display Author update form on GET
-  author_update_get: function(req, res) {
+  author_update_get: function(req, res, next) {
     res.send('NOT IMPLEMENTED: Author update GET');
   },
 
   // Display Author update form on POST
-  author_update_post: function(req, res) {
+  author_update_post: function(req, res, next) {
     res.send('NOT IMPLEMENTED: Author update POST');
   }
 };
